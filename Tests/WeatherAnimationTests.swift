@@ -14,6 +14,7 @@ struct WeatherAnimationTests {
         return bitmap
     }
     static func main() {
+        L10n.resourceRootOverride = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Assets/Localizations")
         _ = NSApplication.shared
         WeatherEffects.assetRootOverride = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Assets/Weather")
         let view = SenseClockView(frame: NSRect(x: 0, y: 0, width: 600, height: 560), isPreview: true)!

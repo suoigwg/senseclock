@@ -2,13 +2,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/module-cache
-xcrun swiftc Sources/Weather.swift Sources/ClockModel.swift Tests/ClockModelTests.swift \
+xcrun swiftc Sources/Localization.swift Sources/Weather.swift Sources/ClockModel.swift Tests/ClockModelTests.swift \
   -module-cache-path build/module-cache -o build/ClockModelTests
 build/ClockModelTests
-xcrun swiftc Sources/Weather.swift Sources/ClockModel.swift Tests/WeatherTests.swift \
+xcrun swiftc Sources/Localization.swift Sources/Weather.swift Sources/ClockModel.swift Tests/LocalizationTests.swift \
+  -module-cache-path build/module-cache -o build/LocalizationTests
+build/LocalizationTests
+xcrun swiftc Sources/Localization.swift Sources/Weather.swift Sources/ClockModel.swift Tests/WeatherTests.swift \
   -module-cache-path build/module-cache -o build/WeatherTests
 build/WeatherTests
-xcrun swiftc Sources/Weather.swift Sources/WeatherEffects.swift Sources/ClockModel.swift Sources/SenseClockView.swift Tests/WeatherAnimationTests.swift \
+xcrun swiftc Sources/Localization.swift Sources/Weather.swift Sources/WeatherEffects.swift Sources/ClockModel.swift Sources/SenseClockView.swift Tests/WeatherAnimationTests.swift \
   -module-cache-path build/module-cache -framework AppKit -framework ScreenSaver -o build/WeatherAnimationTests
 build/WeatherAnimationTests
 xcrun clang -fobjc-arc Tests/ScreenSaverSmokeTests.m -framework AppKit -framework ScreenSaver -o build/ScreenSaverSmokeTests

@@ -70,7 +70,7 @@ struct WeatherTests {
         restored.refresh(location: .cupertino, force: true)
         wait { !restored.isLoading }
         precondition(restored.failed && restored.snapshot?.temperature == 12.5)
-        precondition(restored.footer(fahrenheit: false).contains("缓存"))
+        precondition(restored.footer(fahrenheit: false).contains(L10n.text("Cached")))
         let count = StubWeatherProtocol.count
         restored.refresh(location: .cupertino)
         precondition(StubWeatherProtocol.count == count && !restored.isLoading, "Back off after failures")
@@ -79,7 +79,7 @@ struct WeatherTests {
         precondition(restored.snapshot == nil, "Never show another city's cached weather")
         wait { !restored.isLoading }
         precondition(restored.failed && restored.snapshot == nil)
-        precondition(!restored.footer(fahrenheit: false).contains("更新"))
+        precondition(!restored.footer(fahrenheit: false).contains(L10n.text("Updated")))
         // A late response from the previous city must not overwrite the new one.
         StubWeatherProtocol.status = 200
         StubWeatherProtocol.delay = 0.1

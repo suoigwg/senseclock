@@ -38,29 +38,8 @@ final class PreviewApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
             NSApp.terminate(nil)
             return
         }
-        let menu = NSMenu()
-        let appItem = NSMenuItem()
-        menu.addItem(appItem)
-        let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "设置…", action: #selector(showSettings), keyEquivalent: ",").target = self
-        appMenu.addItem(withTitle: "演示翻页", action: #selector(demoFlip), keyEquivalent: "d").target = self
-        appMenu.addItem(withTitle: "进入全屏", action: #selector(toggleFullScreen), keyEquivalent: "f").target = self
-        appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "退出 SenseClock", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        appItem.submenu = appMenu
-        let weatherItem = NSMenuItem()
-        let weatherMenu = NSMenu(title: "天气演示")
-        let live = weatherMenu.addItem(withTitle: "跟随实时天气", action: #selector(selectWeather), keyEquivalent: "0")
-        live.tag = 0; live.target = self
-        for mode in WeatherDemo.allCases {
-            let item = weatherMenu.addItem(withTitle: mode.title, action: #selector(selectWeather), keyEquivalent: String(mode.rawValue))
-            item.tag = mode.rawValue; item.target = self
-        }
-        weatherMenu.addItem(.separator())
-        weatherMenu.addItem(withTitle: "自动轮播 / 暂停", action: #selector(toggleTour), keyEquivalent: "9").target = self
-        weatherItem.submenu = weatherMenu
-        menu.addItem(weatherItem)
-        NSApp.mainMenu = menu
+        rebuildMenus()
+        NotificationCenter.default.addObserver(self, selector: #selector(refreshLanguage), name: L10n.didChange, object: nil)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.delegate = self
         window.minSize = NSSize(width: 680, height: 560)
@@ -69,9 +48,9 @@ final class PreviewApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         clock = SenseClockView(frame: NSRect(x: 0, y: 64, width: root.bounds.width, height: root.bounds.height - 64), isPreview: true)!
         clock.autoresizingMask = [.width, .height]
         root.addSubview(clock)
-        weatherPicker = NSSegmentedControl(labels: ["实时", "晴天", "多云", "阴天", "雨", "雪", "雾", "雷雨", "晴夜"], trackingMode: .selectOne, target: self, action: #selector(pickWeather))
+        weatherPicker = NSSegmentedControl(labels: [L10n.text("Live"), L10n.text("Clear"), L10n.text("Partly Cloudy"), L10n.text("Cloudy"), L10n.text("Rain"), L10n.text("Snow"), L10n.text("Fog"), L10n.text("Storm"), L10n.text("Clear Night")], trackingMode: .selectOne, target: self, action: #selector(pickWeather))
         weatherPicker.selectedSegment = 0
-        tourButton = NSButton(title: "自动轮播", target: self, action: #selector(toggleTour))
+        tourButton = NSButton(title: L10n.text("Auto Tour"), target: self, action: #selector(toggleTour))
         tourButton.bezelStyle = .rounded
         let controls = NSStackView(views: [weatherPicker, tourButton])
         controlsBar = controls
@@ -105,14 +84,49 @@ final class PreviewApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         clock.frame = NSRect(x: 0, y: 64, width: bounds.width, height: bounds.height - 64)
     }
 
+    private func rebuildMenus() {
+        let menu = NSMenu()
+        let appItem = NSMenuItem()
+        menu.addItem(appItem)
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: L10n.text("Settings…"), action: #selector(showSettings), keyEquivalent: ",").target = self
+        appMenu.addItem(withTitle: L10n.text("Demo Flip"), action: #selector(demoFlip), keyEquivalent: "d").target = self
+        appMenu.addItem(withTitle: L10n.text("Toggle Full Screen"), action: #selector(toggleFullScreen), keyEquivalent: "f").target = self
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: L10n.text("Quit SenseClock"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+        let weatherItem = NSMenuItem()
+        let weatherMenu = NSMenu(title: L10n.text("Weather Demo"))
+        let live = weatherMenu.addItem(withTitle: L10n.text("Follow Live Weather"), action: #selector(selectWeather), keyEquivalent: "0")
+        live.tag = 0; live.target = self
+        for mode in WeatherDemo.allCases {
+            let item = weatherMenu.addItem(withTitle: mode.title, action: #selector(selectWeather), keyEquivalent: String(mode.rawValue))
+            item.tag = mode.rawValue; item.target = self
+        }
+        weatherMenu.addItem(.separator())
+        weatherMenu.addItem(withTitle: L10n.text("Auto Tour / Pause"), action: #selector(toggleTour), keyEquivalent: "9").target = self
+        weatherItem.submenu = weatherMenu
+        menu.addItem(weatherItem)
+        NSApp.mainMenu = menu
+    }
+
+    @objc private func refreshLanguage() {
+        rebuildMenus()
+        let keys = ["Live", "Clear", "Partly Cloudy", "Cloudy", "Rain", "Snow", "Fog", "Storm", "Clear Night"]
+        for (index, key) in keys.enumerated() { weatherPicker.setLabel(L10n.text(key), forSegment: index) }
+        tourButton.title = L10n.text(tourTimer == nil ? "Auto Tour" : "Pause Tour")
+        updateTitle()
+        clock.needsDisplay = true
+    }
+
     private func updateTitle() {
         weatherPicker.selectedSegment = clock.weatherDemo?.rawValue ?? 0
-        window.title = "SenseClock — \(clock.weatherDemo.map { "动画演示 · \($0.title)" } ?? "实时天气") · ⌘0–8 切换 · ⌘9 轮播"
+        window.title = L10n.format("SenseClock — %@ · ⌘0–8 switch · ⌘9 tour", clock.weatherDemo.map { L10n.format("Demo · %@", $0.title) } ?? L10n.text("Live Weather"))
     }
 
     private func stopTour() {
         tourTimer?.invalidate(); tourTimer = nil
-        tourButton.title = "自动轮播"
+        tourButton.title = L10n.text("Auto Tour")
     }
 
     @objc private func selectWeather(_ sender: NSMenuItem) {
@@ -131,7 +145,7 @@ final class PreviewApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if tourTimer != nil { stopTour(); return }
         if clock.weatherDemo == nil { clock.weatherDemo = .clear }
         updateTitle()
-        tourButton.title = "暂停轮播"
+        tourButton.title = L10n.text("Pause Tour")
         let timer = Timer(timeInterval: 6, repeats: true) { [weak self] _ in
             guard let self, self.window.attachedSheet == nil else { return }
             let next = (self.clock.weatherDemo?.rawValue ?? 0) % WeatherDemo.allCases.count + 1

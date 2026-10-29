@@ -4,6 +4,7 @@ import CoreGraphics
 @main
 struct ClockModelTests {
     static func main() {
+        L10n.resourceRootOverride = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("Assets/Localizations")
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         func reading(_ hour: Int, _ minute: Int, _ use24: Bool) -> ClockReading {
@@ -11,9 +12,9 @@ struct ClockModelTests {
         }
         precondition(reading(0, 0, true).hour == "00")
         precondition(reading(0, 0, false).hour == "12")
-        precondition(reading(0, 0, false).period == "AM")
+        precondition(reading(0, 0, false).period == L10n.text("AM"))
         precondition(reading(12, 47, false).hour == "12")
-        precondition(reading(12, 47, false).period == "PM")
+        precondition(reading(12, 47, false).period == L10n.text("PM"))
         precondition(reading(23, 59, false).hour == "11")
         precondition(reading(9, 5, true).minute == "05")
         let before = calendar.date(from: DateComponents(year: 2026, month: 12, day: 31, hour: 23, minute: 59, second: 59))!

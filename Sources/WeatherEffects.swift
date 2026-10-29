@@ -3,8 +3,8 @@ import AppKit
 enum WeatherDemo: Int, CaseIterable {
     case clear = 1, partlyCloudy, cloudy, rain, snow, fog, storm, night
     var title: String {
-        ["晴天 · 柔和日光", "多云 · 自然积云", "阴天 · 灰色层云", "下雨 · 风中细雨",
-         "下雪 · 远近飘雪", "雾天 · 低空薄雾", "雷雨 · 云间闪电", "晴夜 · 静谧月光"][rawValue - 1]
+        [L10n.text("Clear · Soft Sunlight"), L10n.text("Partly Cloudy · Natural Cumulus"), L10n.text("Cloudy · Gray Clouds"), L10n.text("Rain · Windblown Drizzle"),
+         L10n.text("Snow · Layered Snowfall"), L10n.text("Fog · Low Mist"), L10n.text("Storm · Cloud Lightning"), L10n.text("Clear Night · Quiet Moonlight")][rawValue - 1]
     }
     var code: Int { [0, 2, 3, 61, 73, 45, 95, 0][rawValue - 1] }
     var isDay: Bool { self != .night }

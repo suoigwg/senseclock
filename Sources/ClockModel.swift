@@ -59,7 +59,7 @@ struct ClockReading: Equatable {
         let hour = calendar.component(.hour, from: date)
         self.hour = String(format: "%02d", use24Hour ? hour : (hour % 12 == 0 ? 12 : hour % 12))
         minute = String(format: "%02d", calendar.component(.minute, from: date))
-        period = use24Hour ? "" : (hour < 12 ? "AM" : "PM")
+        period = use24Hour ? "" : L10n.text(hour < 12 ? "AM" : "PM")
     }
 }
 
@@ -69,6 +69,10 @@ struct ClockPreferences {
     init() {
         defaults = UserDefaults(suiteName: Self.domain) ?? .standard
         defaults.register(defaults: ["use24Hour": true, "showWeather": true, "drift": true, "scale": 0.78, "weatherAnimations": true])
+    }
+    var language: AppLanguage {
+        get { AppLanguage(rawValue: defaults.string(forKey: "language") ?? "system") ?? .system }
+        nonmutating set { defaults.set(newValue.rawValue, forKey: "language") }
     }
     var weatherLocation: WeatherLocation {
         get {

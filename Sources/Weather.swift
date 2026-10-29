@@ -28,14 +28,14 @@ enum WeatherKind: Int {
     }
     var title: String {
         switch self {
-        case .partlyCloudy: return "多云"
-        case .cloudy: return "阴天"
-        case .rain: return "有雨"
-        case .clear: return "晴朗"
-        case .snow: return "降雪"
-        case .fog: return "有雾"
-        case .storm: return "雷暴"
-        case .unknown: return "天气未知"
+        case .partlyCloudy: return L10n.text("Partly Cloudy")
+        case .cloudy: return L10n.text("Cloudy")
+        case .rain: return L10n.text("Rainy")
+        case .clear: return L10n.text("Sunny")
+        case .snow: return L10n.text("Snowy")
+        case .fog: return L10n.text("Foggy")
+        case .storm: return L10n.text("Thunderstorm")
+        case .unknown: return L10n.text("Unknown Weather")
         }
     }
 }
@@ -79,6 +79,7 @@ struct WeatherSnapshot: Codable {
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = "yyyy-MM-dd"
         guard let day = formatter.date(from: date) else { return "—" }
+        formatter.locale = L10n.locale
         formatter.dateFormat = "EEE"
         return formatter.string(from: day)
     }
@@ -120,9 +121,9 @@ enum WeatherError: LocalizedError {
     case invalidData, server, noCities
     var errorDescription: String? {
         switch self {
-        case .invalidData: return "天气数据不完整，请稍后重试"
-        case .server: return "天气服务暂时不可用"
-        case .noCities: return "没有找到城市，请尝试英文或添加国家名"
+        case .invalidData: return L10n.text("Incomplete weather data. Please try again later.")
+        case .server: return L10n.text("Weather service is temporarily unavailable.")
+        case .noCities: return L10n.text("No cities found. Try English or add a country.")
         }
     }
 }
@@ -144,7 +145,7 @@ enum WeatherAPI {
     @discardableResult
     static func search(_ query: String, completion: @escaping (Result<[WeatherLocation], Error>) -> Void) -> URLSessionDataTask {
         var components = URLComponents(string: "https://geocoding-api.open-meteo.com/v1/search")!
-        components.queryItems = [URLQueryItem(name: "name", value: query), URLQueryItem(name: "count", value: "10"), URLQueryItem(name: "language", value: "zh")]
+        components.queryItems = [URLQueryItem(name: "name", value: query), URLQueryItem(name: "count", value: "10"), URLQueryItem(name: "language", value: L10n.geocodingLanguage)]
         struct Response: Decodable { let results: [WeatherLocation]? }
         return request(components.url!) { result in
             completion(result.flatMap { data in
@@ -239,12 +240,12 @@ final class WeatherStore {
     func footer(fahrenheit: Bool, now: Date = Date()) -> String {
         let unit = fahrenheit ? "°F" : "°C"
         guard let snapshot else {
-            return "open-meteo.com · \(isLoading ? "正在获取天气…" : "天气暂不可用，稍后重试") · \(unit)"
+            return "open-meteo.com · \(isLoading ? L10n.text("Loading weather…") : L10n.text("Weather unavailable; retrying later")) · \(unit)"
         }
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = L10n.locale
         formatter.dateFormat = "MM/dd HH:mm"
         let stale = failed || now.timeIntervalSince(snapshot.fetchedAt) > Self.refreshInterval + 60
-        return "open-meteo.com · \(stale ? "缓存" : "更新") \(formatter.string(from: snapshot.fetchedAt)) · \(unit)"
+        return "open-meteo.com · \(stale ? L10n.text("Cached") : L10n.text("Updated")) \(formatter.string(from: snapshot.fetchedAt)) · \(unit)"
     }
 }

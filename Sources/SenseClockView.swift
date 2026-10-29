@@ -18,6 +18,8 @@ final class SenseClockView: ScreenSaverView {
     private var lastDateKey = ""
     private var dateLabel = ""
     private var settingsWindow: NSWindow?
+    private var settingsLanguage: AppLanguage?
+    private var languagePicker: NSPopUpButton!
     private var hourToggle: NSButton!
     private var weatherToggle: NSButton!
     private var driftToggle: NSButton!
@@ -105,12 +107,12 @@ final class SenseClockView: ScreenSaverView {
             flipStart = ProcessInfo.processInfo.systemUptime
             needsDisplay = true
         }
-        let key = "\(Calendar.current.startOfDay(for: date))-\(Locale.current.identifier)-\(TimeZone.current.identifier)"
+        let key = "\(Calendar.current.startOfDay(for: date))-\(L10n.locale.identifier)-\(TimeZone.current.identifier)"
         if key != lastDateKey {
             lastDateKey = key
             let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "en_US")
-            formatter.dateFormat = "EEE, MMM d"
+            formatter.locale = L10n.locale
+            formatter.setLocalizedDateFormatFromTemplate("EEE MMM d")
             dateLabel = formatter.string(from: date)
         }
     }
@@ -301,10 +303,13 @@ final class SenseClockView: ScreenSaverView {
         let infoY = height * 0.68
         let typeScale = min(1.25, max(0.85, height / 235))
         let cityWidth = width * 0.34 - margin
-        let city = weatherDemo == nil ? preferences.weatherLocation.name : "天气演示"
+        let city = weatherDemo == nil ? preferences.weatherLocation.name : L10n.text("Weather Demo")
         text(dateLabel, rect: NSRect(x: margin, y: infoY + 31 * typeScale, width: cityWidth, height: 25 * typeScale), size: 16 * typeScale, color: NSColor(white: 0.82, alpha: 1))
-        text(city, rect: NSRect(x: margin, y: infoY, width: cityWidth, height: 34 * typeScale), size: (city.count > 14 ? 20 : 28) * typeScale, weight: .medium)
-        let condition = weatherDemo?.title.components(separatedBy: " · ").first ?? snapshot.map { WeatherKind.from(code: $0.code).title } ?? (store.isLoading ? "正在获取天气…" : "天气暂不可用")
+        let preferredCitySize: CGFloat = 28 * typeScale
+        let measuredCityWidth = (city as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: preferredCitySize, weight: .medium)]).width
+        let citySize = min(preferredCitySize, max(12 * typeScale, preferredCitySize * cityWidth * 0.98 / max(1, measuredCityWidth)))
+        text(city, rect: NSRect(x: margin, y: infoY, width: cityWidth, height: 34 * typeScale), size: citySize, weight: .medium)
+        let condition = weatherDemo?.title.components(separatedBy: " · ").first ?? snapshot.map { WeatherKind.from(code: $0.code).title } ?? (store.isLoading ? L10n.text("Loading weather…") : L10n.text("Weather unavailable"))
         text(condition, rect: NSRect(x: margin, y: infoY - 24 * typeScale, width: cityWidth, height: 22 * typeScale), size: 16 * typeScale, color: NSColor(white: 0.77, alpha: 1))
         drawWeatherIcon(center: NSPoint(x: width / 2, y: infoY + 30 * typeScale), size: 146 * typeScale,
                         kind: WeatherKind.from(code: snapshot?.code).rawValue, isDay: snapshot?.isDay ?? true)
@@ -342,7 +347,8 @@ final class SenseClockView: ScreenSaverView {
     override var hasConfigureSheet: Bool { true }
     override var configureSheet: NSWindow? {
         NSLog("SenseClock: configureSheet requested in %@", Bundle.main.bundleIdentifier ?? "unknown host")
-        if settingsWindow == nil { buildSettings() }
+        if settingsWindow == nil || settingsLanguage != L10n.language { buildSettings() }
+        languagePicker.selectItem(at: AppLanguage.allCases.firstIndex(of: preferences.language) ?? 0)
         hourToggle.state = preferences.use24Hour ? .on : .off
         weatherToggle.state = preferences.showWeather ? .on : .off
         driftToggle.state = preferences.drift ? .on : .off
@@ -356,16 +362,16 @@ final class SenseClockView: ScreenSaverView {
         cityResults = [preferences.weatherLocation]
         cityPicker.removeAllItems()
         cityPicker.addItem(withTitle: preferences.weatherLocation.title)
-        searchStatus.stringValue = "搜索后选择城市，点击保存生效。"
+        searchStatus.stringValue = L10n.text("Search, select a city, then save.")
         return settingsWindow
     }
 
     private func buildSettings() {
-        let window = SenseClockSettingsPanel(contentRect: NSRect(x: 0, y: 0, width: 470, height: 524), styleMask: [.titled], backing: .buffered, defer: false)
+        let window = SenseClockSettingsPanel(contentRect: NSRect(x: 0, y: 0, width: 540, height: 570), styleMask: [.titled], backing: .buffered, defer: false)
         window.isFloatingPanel = false
         window.becomesKeyOnlyIfNeeded = false
         window.isReleasedWhenClosed = false
-        window.title = "SenseClock 设置"
+        window.title = L10n.text("SenseClock Settings")
         let content = window.contentView!
         func label(_ value: String, _ frame: NSRect, size: CGFloat = 13) -> NSTextField {
             let field = NSTextField(labelWithString: value)
@@ -374,27 +380,32 @@ final class SenseClockView: ScreenSaverView {
             content.addSubview(field)
             return field
         }
-        _ = label("SenseClock 翻页时钟", NSRect(x: 24, y: 477, width: 420, height: 28), size: 20)
-        hourToggle = NSButton(checkboxWithTitle: "使用 24 小时制", target: nil, action: nil)
-        weatherToggle = NSButton(checkboxWithTitle: "显示实时天气", target: nil, action: nil)
-        driftToggle = NSButton(checkboxWithTitle: "每 5 分钟微移一次（仅正式屏保）", target: nil, action: nil)
-        fahrenheitToggle = NSButton(checkboxWithTitle: "使用华氏温度（°F）", target: nil, action: nil)
-        animationToggle = NSButton(checkboxWithTitle: "天气动画（遵循系统减弱动态效果设置）", target: nil, action: nil)
+        _ = label(L10n.text("SenseClock Flip Clock"), NSRect(x: 24, y: 523, width: 420, height: 28), size: 20)
+        settingsLanguage = L10n.language
+        _ = label(L10n.text("Language"), NSRect(x: 24, y: 485, width: 150, height: 22))
+        languagePicker = NSPopUpButton(frame: NSRect(x: 180, y: 481, width: 336, height: 28), pullsDown: false)
+        languagePicker.addItems(withTitles: AppLanguage.allCases.map { $0.title })
+        content.addSubview(languagePicker)
+        hourToggle = NSButton(checkboxWithTitle: L10n.text("Use 24-hour time"), target: nil, action: nil)
+        weatherToggle = NSButton(checkboxWithTitle: L10n.text("Show live weather"), target: nil, action: nil)
+        driftToggle = NSButton(checkboxWithTitle: L10n.text("Shift every 5 minutes (screen saver only)"), target: nil, action: nil)
+        fahrenheitToggle = NSButton(checkboxWithTitle: L10n.text("Use Fahrenheit (°F)"), target: nil, action: nil)
+        animationToggle = NSButton(checkboxWithTitle: L10n.text("Weather animation (respects Reduce Motion)"), target: nil, action: nil)
         for (index, button) in [hourToggle!, weatherToggle!, driftToggle!, fahrenheitToggle!, animationToggle!].enumerated() {
-            button.frame = NSRect(x: 24, y: 434 - index * 34, width: 422, height: 24)
+            button.frame = NSRect(x: 24, y: 434 - index * 34, width: 492, height: 24)
             content.addSubview(button)
         }
-        _ = label("时钟和天气大小", NSRect(x: 24, y: 253, width: 115, height: 22))
+        _ = label(L10n.text("Clock and weather size"), NSRect(x: 24, y: 253, width: 175, height: 22))
         sizeSlider = NSSlider(value: preferences.scale, minValue: 0.4, maxValue: 1, target: nil, action: nil)
-        sizeSlider.frame = NSRect(x: 144, y: 253, width: 298, height: 24)
+        sizeSlider.frame = NSRect(x: 204, y: 253, width: 308, height: 24)
         content.addSubview(sizeSlider)
-        _ = label("天气城市（支持中文、英文和城市＋国家）", NSRect(x: 24, y: 215, width: 422, height: 22))
+        _ = label(L10n.text("Weather city (city + country supported)"), NSRect(x: 24, y: 215, width: 422, height: 22))
         cityField = NSTextField(frame: NSRect(x: 24, y: 181, width: 321, height: 25))
-        cityField.placeholderString = "例如：北京 / Paris, France"
+        cityField.placeholderString = L10n.text("e.g. Beijing / Paris, France")
         cityField.target = self
         cityField.action = #selector(searchCity)
         content.addSubview(cityField)
-        searchButton = NSButton(title: "搜索", target: self, action: #selector(searchCity))
+        searchButton = NSButton(title: L10n.text("Search"), target: self, action: #selector(searchCity))
         searchButton.bezelStyle = .rounded
         searchButton.frame = NSRect(x: 353, y: 177, width: 93, height: 32)
         content.addSubview(searchButton)
@@ -402,7 +413,7 @@ final class SenseClockView: ScreenSaverView {
         content.addSubview(cityPicker)
         searchStatus = label("", NSRect(x: 24, y: 104, width: 422, height: 29), size: 11)
         searchStatus.maximumNumberOfLines = 2
-        let attribution = NSMutableAttributedString(string: "天气数据：Open-Meteo · CC BY 4.0", attributes: [.font: NSFont.systemFont(ofSize: 11)])
+        let attribution = NSMutableAttributedString(string: L10n.text("Weather: Open-Meteo · CC BY 4.0"), attributes: [.font: NSFont.systemFont(ofSize: 11)])
         attribution.addAttribute(.link, value: URL(string: "https://open-meteo.com/")!, range: (attribution.string as NSString).range(of: "Open-Meteo"))
         attribution.addAttribute(.link, value: URL(string: "https://creativecommons.org/licenses/by/4.0/")!, range: (attribution.string as NSString).range(of: "CC BY 4.0"))
         let source = NSTextField(labelWithAttributedString: attribution)
@@ -410,13 +421,13 @@ final class SenseClockView: ScreenSaverView {
         source.allowsEditingTextAttributes = true
         source.frame = NSRect(x: 24, y: 77, width: 422, height: 20)
         content.addSubview(source)
-        _ = label("每 30 分钟更新 · 不使用定位权限", NSRect(x: 24, y: 59, width: 310, height: 18), size: 11)
-        let done = NSButton(title: "保存", target: self, action: #selector(saveSettings))
+        _ = label(L10n.text("Refreshes every 30 min · No location permission"), NSRect(x: 24, y: 59, width: 310, height: 18), size: 11)
+        let done = NSButton(title: L10n.text("Save"), target: self, action: #selector(saveSettings))
         done.bezelStyle = .rounded
         done.keyEquivalent = "\r"
         done.frame = NSRect(x: 350, y: 24, width: 96, height: 32)
         content.addSubview(done)
-        let cancel = NSButton(title: "取消", target: self, action: #selector(cancelSettings))
+        let cancel = NSButton(title: L10n.text("Cancel"), target: self, action: #selector(cancelSettings))
         cancel.bezelStyle = .rounded
         cancel.keyEquivalent = "\u{1b}"
         cancel.frame = NSRect(x: 248, y: 24, width: 96, height: 32)
@@ -426,12 +437,12 @@ final class SenseClockView: ScreenSaverView {
 
     @objc private func searchCity() {
         let query = cityField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard query.count >= 2 else { searchStatus.stringValue = "请输入至少两个字符的城市名。"; return }
+        guard query.count >= 2 else { searchStatus.stringValue = L10n.text("Enter at least two characters."); return }
         searchGeneration += 1
         let generation = searchGeneration
         searchTask?.cancel()
         searchButton.isEnabled = false
-        searchStatus.stringValue = "正在搜索城市…"
+        searchStatus.stringValue = L10n.text("Searching…")
         searchTask = WeatherAPI.search(query) { [weak self] result in
             guard let self, self.searchGeneration == generation else { return }
             self.searchButton.isEnabled = true
@@ -440,9 +451,9 @@ final class SenseClockView: ScreenSaverView {
                 self.cityResults = cities
                 self.cityPicker.removeAllItems()
                 self.cityPicker.addItems(withTitles: cities.map { $0.title })
-                self.searchStatus.stringValue = "找到 \(cities.count) 个结果，请确认地区后保存。"
+                self.searchStatus.stringValue = L10n.format("Found %ld results. Confirm the region and save.", cities.count)
             case .failure(let error):
-                self.searchStatus.stringValue = "搜索失败：\(error.localizedDescription)"
+                self.searchStatus.stringValue = L10n.format("Search failed: %@", error.localizedDescription)
             }
         }
     }
@@ -456,6 +467,7 @@ final class SenseClockView: ScreenSaverView {
     @objc private func saveSettings() {
         searchGeneration += 1
         searchTask?.cancel()
+        preferences.language = AppLanguage.allCases[languagePicker.indexOfSelectedItem]
         preferences.use24Hour = hourToggle.state == .on
         preferences.showWeather = weatherToggle.state == .on
         preferences.drift = driftToggle.state == .on
@@ -468,6 +480,7 @@ final class SenseClockView: ScreenSaverView {
         updateTime(animate: false)
         needsDisplay = true
         dismissSettings()
+        NotificationCenter.default.post(name: L10n.didChange, object: nil)
     }
 
     private func dismissSettings() {

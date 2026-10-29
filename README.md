@@ -18,6 +18,12 @@ The bundled `SenseClock Preview.app` provides a standalone preview: press `⌘D`
 
 The options window was verified in System Settings on this Mac, including opening, reopening, saving, and canceling. Its panel can receive keyboard focus in the screen saver host and closes the settings session through the ScreenSaver API.
 
+## Languages (1.6.0)
+
+The screen saver and preview app support English, Simplified Chinese, and Traditional Chinese. The default is **Follow System**, which selects the first supported language in macOS Preferred Languages and falls back to English when none match. Open Options → Language to override it. Dates, weekdays, weather descriptions, settings, demo controls, and menus use the selected language. Saved city names retain the provider's original spelling; new city searches request localized results where Open-Meteo supports them.
+
+Translation catalogs live in `Assets/Localizations/<language>.lproj/Localizable.strings` and are bundled with both products. Source code comments and project documentation remain in English.
+
 ## Full-screen weather background (1.5.1)
 
 The weather animation and background fill the display. The clock, current conditions, and five-day forecast stay centered at a moderate size. The background and foreground use independent scales, so changing **Clock and Weather Size** does not shrink the rain, clouds, snow, or lightning. The component has no separate square background panel.

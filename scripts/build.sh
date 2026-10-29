@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 BUILD="$PWD/build"
 mkdir -p "$BUILD/SenseClock.saver/Contents/MacOS" "$BUILD/SenseClock Preview.app/Contents/MacOS" "$BUILD/module-cache"
 SDK="$(xcrun --sdk macosx --show-sdk-path)"
-COMMON=(Sources/Weather.swift Sources/WeatherEffects.swift Sources/ClockModel.swift Sources/SenseClockView.swift)
+COMMON=(Sources/Localization.swift Sources/Weather.swift Sources/WeatherEffects.swift Sources/ClockModel.swift Sources/SenseClockView.swift)
 for ARCH in arm64 x86_64; do
   xcrun swiftc "${COMMON[@]}" -sdk "$SDK" -target "$ARCH-apple-macos12.0" \
     -module-cache-path "$BUILD/module-cache" -O -emit-library -module-name SenseClock \
@@ -16,13 +16,14 @@ cat > "$BUILD/SenseClock.saver/Contents/Info.plist" <<'PLIST'
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleDevelopmentRegion</key><string>en</string>
+<key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string><string>zh-Hant</string></array>
 <key>CFBundleExecutable</key><string>SenseClock</string>
 <key>CFBundleIdentifier</key><string>com.senseclock.screensaver</string>
 <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
 <key>CFBundleName</key><string>SenseClock</string>
 <key>CFBundlePackageType</key><string>BNDL</string>
-<key>CFBundleShortVersionString</key><string>1.5.1</string>
-<key>CFBundleVersion</key><string>12</string>
+<key>CFBundleShortVersionString</key><string>1.6.0</string>
+<key>CFBundleVersion</key><string>13</string>
 <key>LSMinimumSystemVersion</key><string>12.0</string>
 <key>NSPrincipalClass</key><string>SenseClockView</string>
 </dict></plist>
@@ -37,11 +38,13 @@ cat > "$BUILD/SenseClock Preview.app/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+<key>CFBundleDevelopmentRegion</key><string>en</string>
+<key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string><string>zh-Hant</string></array>
 <key>CFBundleExecutable</key><string>SenseClockPreview</string>
 <key>CFBundleIdentifier</key><string>com.senseclock.preview</string>
 <key>CFBundleName</key><string>SenseClock Preview</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.5.1</string>
+<key>CFBundleShortVersionString</key><string>1.6.0</string>
 <key>LSMinimumSystemVersion</key><string>12.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
@@ -49,6 +52,7 @@ cat > "$BUILD/SenseClock Preview.app/Contents/Info.plist" <<'PLIST'
 PLIST
 for BUNDLE in "$BUILD/SenseClock.saver" "$BUILD/SenseClock Preview.app"; do
   mkdir -p "$BUNDLE/Contents/Resources/Weather"
+  cp -R Assets/Localizations/*.lproj "$BUNDLE/Contents/Resources/"
   for ASSET in cloud-day cloud-storm moon; do
     cp "Assets/Weather/$ASSET.png" "$BUNDLE/Contents/Resources/Weather/"
   done
